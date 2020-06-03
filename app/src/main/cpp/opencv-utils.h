@@ -6,3 +6,4 @@ using namespace cv;
 
 void myFlip(Mat src);
 void myBlur(Mat src, float sigma);
+void BlackWhite(Mat src);

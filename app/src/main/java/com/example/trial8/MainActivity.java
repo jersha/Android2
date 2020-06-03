@@ -2,7 +2,6 @@ package com.example.trial8;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -22,7 +21,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -34,6 +32,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
+    static {
+        System.loadLibrary("native-lib");
+    }
+
+    public native Bitmap myFlip(Bitmap bitmapIn);
+
     ImageView imageView;
     TextView tv_x;
     TextView tv_y;
@@ -146,12 +150,14 @@ public class MainActivity extends AppCompatActivity {
             bt_height = myBitmap.getHeight();
             bt_width = myBitmap.getWidth();
             if(bt_width < bt_height){
-                imageView.setImageBitmap(myBitmap);
+                Bitmap myBitmapOut = myFlip(myBitmap);
+                imageView.setImageBitmap(myBitmapOut);
             }else{
                 Matrix mat = new Matrix();
                 mat.postRotate(90);
                 Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
-                imageView.setImageBitmap(bMapRotate);
+                Bitmap myBitmapOut = myFlip(bMapRotate);
+                imageView.setImageBitmap(myBitmapOut);
             }
             imageView.getLocationOnScreen(viewCoords);
         }

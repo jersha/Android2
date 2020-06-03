@@ -88,18 +88,12 @@ void matToBitmap(JNIEnv * env, Mat src, jobject bitmap, jboolean needPremultiply
     }
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_trial6_MainActivity_myFlip(JNIEnv* env, jobject, jobject bitmapIn, jobject bitmapOut) {
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_example_trial8_MainActivity_myFlip(JNIEnv *env, jobject thiz, jobject bitmap_in) {
     Mat src;
-    bitmapToMat(env, bitmapIn, src, false);
+    bitmapToMat(env, bitmap_in, src, false);
     myFlip(src);
-    matToBitmap(env, src, bitmapOut, false);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_trial6_MainActivity_myBlur(JNIEnv* env, jobject, jobject bitmapIn, jobject bitmapOut, jfloat sigma) {
-    Mat src;
-    bitmapToMat(env, bitmapIn, src, false);
-    myBlur(src, sigma);
-    matToBitmap(env, src, bitmapOut, false);
+    matToBitmap(env, src, bitmap_in, false);
+    return bitmap_in;
 }
