@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -43,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     Uri photoURI = null;
     String mCurrentPhotoPath = "";
     int[] viewCoords = new int[2];
-    int height = 0, width = 0;
+    int bt_height = 0, bt_width = 0;
     Integer REQUEST_CAMERA = 1, SELECT_FILE = 0;
     boolean buttonOn;
 
@@ -142,10 +143,17 @@ public class MainActivity extends AppCompatActivity {
         }
         if (requestCode == CAPTURE_IMAGE_REQUEST && resultCode == RESULT_OK) {
             Bitmap myBitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
-            imageView.setImageBitmap(myBitmap);
+            bt_height = myBitmap.getHeight();
+            bt_width = myBitmap.getWidth();
+            if(bt_width < bt_height){
+                imageView.setImageBitmap(myBitmap);
+            }else{
+                Matrix mat = new Matrix();
+                mat.postRotate(90);
+                Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
+                imageView.setImageBitmap(bMapRotate);
+            }
             imageView.getLocationOnScreen(viewCoords);
-            height = imageView.getHeight();
-            width = imageView.getWidth();
         }
         else
         {
@@ -179,8 +187,8 @@ public class MainActivity extends AppCompatActivity {
         String vcy_str = Float.toString(viewCoords[1]);
         String x_str = Float.toString(x_flt);
         String y_str = Float.toString(y_flt);
-        String w_str = Float.toString(width);
-        String h_str = Float.toString(height);
+        String w_str = Float.toString(bt_width);
+        String h_str = Float.toString(bt_height);
         tv_x.setText(vcx_str + " ," + x_str + " ," +  w_str);
         tv_y.setText(vcy_str + " ," + y_str + " ," +  h_str);
         return false;
