@@ -1,6 +1,8 @@
 package com.example.trial8;
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -19,6 +21,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -33,14 +36,15 @@ public class MainActivity extends AppCompatActivity {
     ImageView imageView;
     TextView tv_x;
     TextView tv_y;
-    Button button;
+    Button button_cap;
+    Button button_browse;
     File photoFile = null;
     static final int CAPTURE_IMAGE_REQUEST = 1;
     Uri photoURI = null;
     String mCurrentPhotoPath = "";
     int[] viewCoords = new int[2];
-    int height = 0;
-    int width = 0;
+    int height = 0, width = 0;
+    Integer REQUEST_CAMERA = 1, SELECT_FILE = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,15 +54,28 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         imageView = findViewById(R.id.imageView);
-        button = findViewById(R.id.btnCaptureImage);
+        button_cap = findViewById(R.id.btnCaptureImage);
+        button_browse = findViewById(R.id.btnBrowseImage);
         tv_x = (TextView)findViewById(R.id.txt_x);
         tv_y = (TextView)findViewById(R.id.txt_y);
-        button.setOnClickListener(new View.OnClickListener() {
+        button_cap.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 captureImage();
             }
         });
+        button_browse.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                SelectImage();
+            }
+        });
+    }
+
+    private void SelectImage(){
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+        startActivityForResult(intent.createChooser(intent, "Select File"), SELECT_FILE);
     }
 
     private void captureImage() {
@@ -118,6 +135,10 @@ public class MainActivity extends AppCompatActivity {
         //Bundle extras = data.getExtras();
         //Bitmap imageBitmap = (Bitmap) extras.get("data");
         //imageView.setImageBitmap(imageBitmap);
+        if(resultCode == Activity.RESULT_OK && requestCode == SELECT_FILE) {
+            Uri selectedImageUri = data.getData();
+            imageView.setImageURI(selectedImageUri);
+        }
         if (requestCode == CAPTURE_IMAGE_REQUEST && resultCode == RESULT_OK) {
             Bitmap myBitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
             imageView.setImageBitmap(myBitmap);
