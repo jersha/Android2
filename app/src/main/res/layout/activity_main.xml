@@ -4,14 +4,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:backgroundTint="#00FFFFFF"
+    android:background="#FFFFFF"
+    android:backgroundTint="#FFFFFF"
     android:backgroundTintMode="add"
     tools:context=".MainActivity">
 
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="393dp"
-        android:layout_height="575dp"
+        android:layout_height="600dp"
         android:background="#FF5722"
         android:scaleType="centerInside"
         app:layout_constraintEnd_toEndOf="parent"
@@ -24,13 +25,27 @@
         android:id="@+id/btnCaptureImage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="8dp"
-        android:background="@drawable/btn_cam"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/ripple_effect2"
         android:backgroundTintMode="src_in"
+        android:textAlignment="center"
+        android:textSize="10sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.1"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageView" />
+
+    <Button
+        android:id="@+id/btnSolve"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/ripple_effect3"
+        android:backgroundTintMode="src_in"
+        android:textAlignment="center"
+        android:textSize="10sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.996"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageView" />
 
@@ -39,12 +54,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:background="@drawable/btn_browse"
+        android:background="@drawable/ripple_effect"
         android:backgroundTintMode="src_in"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.918"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageView" />
 
@@ -69,15 +84,5 @@
         app:layout_constraintStart_toEndOf="@+id/txt_x"
         app:layout_constraintTop_toBottomOf="@+id/btnCaptureImage"
         tools:ignore="MissingConstraints" />
-
-    <SeekBar
-        android:id="@+id/seekBar"
-        style="@android:style/Widget.SeekBar"
-        android:layout_width="360dp"
-        android:layout_height="26dp"
-        android:progressTint="#F85922"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

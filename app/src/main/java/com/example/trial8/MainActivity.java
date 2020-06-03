@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     int[] viewCoords = new int[2];
     int height = 0, width = 0;
     Integer REQUEST_CAMERA = 1, SELECT_FILE = 0;
+    boolean buttonOn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
