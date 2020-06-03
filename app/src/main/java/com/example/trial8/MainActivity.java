@@ -6,7 +6,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -36,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("native-lib");
     }
 
-    public native Bitmap myFlip(Bitmap bitmapIn);
+    public native Bitmap BlackWhite(Bitmap bitmapIn);
 
     ImageView imageView;
     TextView tv_x;
@@ -138,25 +142,43 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        //Bundle extras = data.getExtras();
-        //Bitmap imageBitmap = (Bitmap) extras.get("data");
-        //imageView.setImageBitmap(imageBitmap);
         if(resultCode == Activity.RESULT_OK && requestCode == SELECT_FILE) {
             Uri selectedImageUri = data.getData();
-            imageView.setImageURI(selectedImageUri);
+            try {
+                Bitmap myBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
+                bt_height = myBitmap.getHeight();
+                bt_width = myBitmap.getWidth();
+                if(bt_width < bt_height){
+                    Bitmap myBitmapOut = toGrayscale(myBitmap);
+                    myBitmapOut = BlackWhite(myBitmapOut);
+                    imageView.setImageBitmap(myBitmapOut);
+                }else{
+                    Matrix mat = new Matrix();
+                    mat.postRotate(90);
+                    Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
+                    Bitmap myBitmapOut = toGrayscale(bMapRotate);
+                    myBitmapOut = BlackWhite(myBitmapOut);
+                    imageView.setImageBitmap(myBitmapOut);
+                }
+                imageView.getLocationOnScreen(viewCoords);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         if (requestCode == CAPTURE_IMAGE_REQUEST && resultCode == RESULT_OK) {
             Bitmap myBitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
             bt_height = myBitmap.getHeight();
             bt_width = myBitmap.getWidth();
             if(bt_width < bt_height){
-                Bitmap myBitmapOut = myFlip(myBitmap);
+                Bitmap myBitmapOut = toGrayscale(myBitmap);
+                myBitmapOut = BlackWhite(myBitmapOut);
                 imageView.setImageBitmap(myBitmapOut);
             }else{
                 Matrix mat = new Matrix();
                 mat.postRotate(90);
                 Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
-                Bitmap myBitmapOut = myFlip(bMapRotate);
+                Bitmap myBitmapOut = toGrayscale(bMapRotate);
+                myBitmapOut = BlackWhite(myBitmapOut);
                 imageView.setImageBitmap(myBitmapOut);
             }
             imageView.getLocationOnScreen(viewCoords);
@@ -198,5 +220,22 @@ public class MainActivity extends AppCompatActivity {
         tv_x.setText(vcx_str + " ," + x_str + " ," +  w_str);
         tv_y.setText(vcy_str + " ," + y_str + " ," +  h_str);
         return false;
+    }
+
+    public Bitmap toGrayscale(Bitmap bmpOriginal)
+    {
+        int width, height;
+        height = bmpOriginal.getHeight();
+        width = bmpOriginal.getWidth();
+
+        Bitmap bmpGrayscale = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(bmpGrayscale);
+        Paint paint = new Paint();
+        ColorMatrix cm = new ColorMatrix();
+        cm.setSaturation(0);
+        ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
+        paint.setColorFilter(f);
+        c.drawBitmap(bmpOriginal, 0, 0, paint);
+        return bmpGrayscale;
     }
 }

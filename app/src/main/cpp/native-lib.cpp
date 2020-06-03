@@ -96,4 +96,20 @@ Java_com_example_trial8_MainActivity_myFlip(JNIEnv *env, jobject thiz, jobject b
     myFlip(src);
     matToBitmap(env, src, bitmap_in, false);
     return bitmap_in;
+}extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_example_trial8_MainActivity_BlackWhite(JNIEnv *env, jobject thiz, jobject bitmap_in) {
+    Mat src;
+    bitmapToMat(env, bitmap_in, src, false);
+    BlackWhite(src);
+    matToBitmap(env, src, bitmap_in, false);
+    return bitmap_in;
+}extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_example_trial8_MainActivity_myBlur(JNIEnv *env, jobject thiz, jobject bitmap_in) {
+    Mat src;
+    bitmapToMat(env, bitmap_in, src, false);
+    myBlur(src, 20);
+    matToBitmap(env, src, bitmap_in, false);
+    return bitmap_in;
 }
