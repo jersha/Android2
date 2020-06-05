@@ -146,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
             Uri selectedImageUri = data.getData();
             try {
                 Bitmap myBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
+                myBitmap = toGrayscale(myBitmap);
                 bt_height = myBitmap.getHeight();
                 bt_width = myBitmap.getWidth();
                 if(bt_width < bt_height){
