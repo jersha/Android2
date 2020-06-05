@@ -1,5 +1,6 @@
 #include "opencv-utils.h"
 #include <opencv2/imgproc.hpp>
+#include <vector>
 
 void myFlip(Mat src){
     flip(src, src, 8);
@@ -9,31 +10,44 @@ void myBlur(Mat src, float sigma){
     GaussianBlur(src, src, Size(), sigma);
 }
 
-void BlackWhite(Mat src){
-    threshold(src,  src, 70, 255, THRESH_BINARY);
+bool compareContourAreas ( std::vector<cv::Point> contour1, std::vector<cv::Point> contour2 ) {
+    double i = fabs( contourArea(cv::Mat(contour1)) );
+    double j = fabs( contourArea(cv::Mat(contour2)) );
+    return ( i < j );
 }
 
-/*int FindTopBorder(Mat src){
-    int input_height = src.rows;
-    int input_width = src.cols;
-    int top_border_array[] = {};
-    int top_border = -1;
-    int value = 0;
+Mat BlackWhite(Mat src){
+    // Input Quadilateral or Image plane coordinates
+    Point2f inputQuad[4];
+    // Output Quadilateral or World plane coordinates
+    Point2f outputQuad[4];
 
-    for(int pixel_LR = 0; pixel_LR < input_width; pixel_LR++){
-        for(int pixel_TB = 0; pixel_TB < input_height; pixel_TB++){
-            value = src[pixel_TB][pixel_LR];
-        }
-    }
+    // Lambda Matrix
+    Mat lambda( 2, 4, CV_32FC1 );
+    //Input and Output Image;
+    Mat input, output;
 
-    if(value == 0):
-    break
-    top_border_array = np.hstack((top_border_array, np.array(pixel_TB)))
-    top_border = np.bincount(top_border_array).argmax()
+    //Load the image
+    input = src;
+    // Set the lambda matrix the same type and size as input
+    lambda = Mat::zeros( input.rows, input.cols, input.type() );
 
-    if(top_border == -1 or bottom_border == -1 or left_border == -1 or right_border == -1):
-    print('Error:Not able to find the border')
-    exit()
-    else:
-    return top_border;
-}*/
+    // The 4 points that select quadilateral on the input , from top-left in clockwise order
+    // These four pts are the sides of the rect box used as input
+    inputQuad[0] = Point2f( 70,252 );
+    inputQuad[1] = Point2f( 375,123);
+    inputQuad[2] = Point2f( 501,273);
+    inputQuad[3] = Point2f( 194,467  );
+    // The 4 points where the mapping is to be done , from top-left in clockwise order
+    outputQuad[0] = Point2f( 0,0 );
+    outputQuad[1] = Point2f( input.cols-1,0);
+    outputQuad[2] = Point2f( input.cols-1,input.rows-1);
+    outputQuad[3] = Point2f( 0,input.rows-1  );
+
+    // Get the Perspective Transform Matrix i.e. lambda
+    lambda = getPerspectiveTransform( inputQuad, outputQuad );
+    // Apply the Perspective Transform just found to the src image
+    warpPerspective(input,output,lambda,output.size() );
+    return output;
+}
+

@@ -149,16 +149,16 @@ public class MainActivity extends AppCompatActivity {
                 bt_height = myBitmap.getHeight();
                 bt_width = myBitmap.getWidth();
                 if(bt_width < bt_height){
-                    Bitmap myBitmapOut = toGrayscale(myBitmap);
-                    myBitmapOut = BlackWhite(myBitmapOut);
-                    imageView.setImageBitmap(myBitmapOut);
+                    //Bitmap myBitmapOut = toGrayscale(myBitmap);
+                    myBitmap = BlackWhite(myBitmap);
+                    imageView.setImageBitmap(myBitmap);
                 }else{
                     Matrix mat = new Matrix();
                     mat.postRotate(90);
                     Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
-                    Bitmap myBitmapOut = toGrayscale(bMapRotate);
-                    myBitmapOut = BlackWhite(myBitmapOut);
-                    imageView.setImageBitmap(myBitmapOut);
+                    //Bitmap myBitmapOut = toGrayscale(bMapRotate);
+                    myBitmap = BlackWhite(myBitmap);
+                    imageView.setImageBitmap(myBitmap);
                 }
                 imageView.getLocationOnScreen(viewCoords);
             } catch (IOException e) {

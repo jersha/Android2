@@ -99,10 +99,10 @@ Java_com_example_trial8_MainActivity_myFlip(JNIEnv *env, jobject thiz, jobject b
 }extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_example_trial8_MainActivity_BlackWhite(JNIEnv *env, jobject thiz, jobject bitmap_in) {
-    Mat src;
+    Mat src, dest;
     bitmapToMat(env, bitmap_in, src, false);
-    BlackWhite(src);
-    matToBitmap(env, src, bitmap_in, false);
+    dest = BlackWhite(src);
+    matToBitmap(env, dest, bitmap_in, false);
     return bitmap_in;
 }extern "C"
 JNIEXPORT jobject JNICALL
