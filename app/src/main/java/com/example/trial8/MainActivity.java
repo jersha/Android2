@@ -30,6 +30,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import com.theartofdev.edmodo.cropper.CropImage;
+import com.theartofdev.edmodo.cropper.CropImageView;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -68,16 +71,24 @@ public class MainActivity extends AppCompatActivity {
         button_browse = findViewById(R.id.btnBrowseImage);
         tv_x = (TextView)findViewById(R.id.txt_x);
         tv_y = (TextView)findViewById(R.id.txt_y);
+
+
         button_cap.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                captureImage();
+                CropImage.activity()
+                        .setGuidelines(CropImageView.Guidelines.ON)
+                        .setAspectRatio(1,1)
+                        .start(MainActivity.this);
             }
         });
         button_browse.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                SelectImage();
+                CropImage.activity()
+                        .setGuidelines(CropImageView.Guidelines.ON)
+                        .setAspectRatio(1,1)
+                        .start(MainActivity.this);
             }
         });
     }
@@ -138,51 +149,38 @@ public class MainActivity extends AppCompatActivity {
         mCurrentPhotoPath = image.getAbsolutePath();
         return image;
     }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(resultCode == Activity.RESULT_OK && requestCode == SELECT_FILE) {
-            Uri selectedImageUri = data.getData();
-            try {
-                Bitmap myBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
-                myBitmap = toGrayscale(myBitmap);
-                bt_height = myBitmap.getHeight();
-                bt_width = myBitmap.getWidth();
-                if(bt_width < bt_height){
-                    //Bitmap myBitmapOut = toGrayscale(myBitmap);
-                    myBitmap = BlackWhite(myBitmap);
-                    imageView.setImageBitmap(myBitmap);
-                }else{
-                    Matrix mat = new Matrix();
-                    mat.postRotate(90);
-                    Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
-                    //Bitmap myBitmapOut = toGrayscale(bMapRotate);
-                    myBitmap = BlackWhite(myBitmap);
-                    imageView.setImageBitmap(myBitmap);
+
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            if (resultCode == RESULT_OK) {
+                Uri selectedImageUri = result.getUri();
+                try {
+                    Bitmap myBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
+                    myBitmap = toGrayscale(myBitmap);
+                    bt_height = myBitmap.getHeight();
+                    bt_width = myBitmap.getWidth();
+                    if(bt_width < bt_height){
+                        Bitmap myBitmapOut = toGrayscale(myBitmap);
+                        myBitmap = BlackWhite(myBitmapOut);
+                        imageView.setImageBitmap(myBitmap);
+                    }else{
+                        Matrix mat = new Matrix();
+                        mat.postRotate(90);
+                        Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
+                        Bitmap myBitmapOut = toGrayscale(bMapRotate);
+                        myBitmap = BlackWhite(myBitmapOut);
+                        imageView.setImageBitmap(myBitmap);
+                    }
+                    imageView.getLocationOnScreen(viewCoords);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-                imageView.getLocationOnScreen(viewCoords);
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                Exception error = result.getError();
             }
-        }
-        if (requestCode == CAPTURE_IMAGE_REQUEST && resultCode == RESULT_OK) {
-            Bitmap myBitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
-            bt_height = myBitmap.getHeight();
-            bt_width = myBitmap.getWidth();
-            if(bt_width < bt_height){
-                Bitmap myBitmapOut = toGrayscale(myBitmap);
-                myBitmapOut = BlackWhite(myBitmapOut);
-                imageView.setImageBitmap(myBitmapOut);
-            }else{
-                Matrix mat = new Matrix();
-                mat.postRotate(90);
-                Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
-                Bitmap myBitmapOut = toGrayscale(bMapRotate);
-                myBitmapOut = BlackWhite(myBitmapOut);
-                imageView.setImageBitmap(myBitmapOut);
-            }
-            imageView.getLocationOnScreen(viewCoords);
         }
         else
         {
