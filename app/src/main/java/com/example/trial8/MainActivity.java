@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.MotionEvent;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -23,5 +24,13 @@ public class MainActivity extends AppCompatActivity {
                 finish();
             }
         },SPLASH_SCREEN);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event){
+        Intent intent = new Intent(MainActivity.this, index_page.class);
+        startActivity(intent);
+        finish();
+        return false;
     }
 }

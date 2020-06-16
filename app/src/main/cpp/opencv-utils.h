@@ -4,6 +4,6 @@
 
 using namespace cv;
 
-void myFlip(Mat src);
-void myBlur(Mat src, float sigma);
 Mat BlackWhite(Mat src);
+Mat solve(Mat src, const Mat& olay, int start_x, int start_y, int end_x, int end_y);
+int solution_present();

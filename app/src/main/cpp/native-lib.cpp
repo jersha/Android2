@@ -90,26 +90,28 @@ void matToBitmap(JNIEnv * env, Mat src, jobject bitmap, jboolean needPremultiply
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_example_trial8_MainActivity_myFlip(JNIEnv *env, jobject thiz, jobject bitmap_in) {
-    Mat src;
-    bitmapToMat(env, bitmap_in, src, false);
-    myFlip(src);
-    matToBitmap(env, src, bitmap_in, false);
-    return bitmap_in;
-}extern "C"
-JNIEXPORT jobject JNICALL
 Java_com_example_trial8_index_1page_BlackWhite(JNIEnv *env, jobject thiz, jobject bitmap_in) {
     Mat src, dest;
     bitmapToMat(env, bitmap_in, src, false);
     dest = BlackWhite(src);
     matToBitmap(env, dest, bitmap_in, false);
     return bitmap_in;
-}extern "C"
+}
+extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_example_trial8_MainActivity_myBlur(JNIEnv *env, jobject thiz, jobject bitmap_in) {
-    Mat src;
-    bitmapToMat(env, bitmap_in, src, false);
-    myBlur(src, 20);
-    matToBitmap(env, src, bitmap_in, false);
-    return bitmap_in;
+Java_com_example_trial8_index_1page_solve(JNIEnv *env, jobject thiz, jobject src, jobject overlay,
+                                          jint start_x, jint start_y, jint end_x, jint end_y) {
+    Mat olay, input, output;
+    jobject output_image = src;
+    bitmapToMat(env, overlay, olay, false);
+    bitmapToMat(env, src, input, false);
+    output = solve(input, olay, start_x, start_y, end_x, end_y);
+    matToBitmap(env, output, output_image, false);
+    return output_image;
+}extern "C"
+JNIEXPORT jint JNICALL
+Java_com_example_trial8_index_1page_solution_1present(JNIEnv *env, jobject thiz) {
+    int return_value;
+    return_value = solution_present();
+    return return_value;
 }

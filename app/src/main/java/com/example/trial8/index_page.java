@@ -1,20 +1,18 @@
 package com.example.trial8;
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -25,6 +23,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.graphics.Color;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -44,12 +43,16 @@ public class index_page extends AppCompatActivity {
     }
 
     public native Bitmap BlackWhite(Bitmap bitmapIn);
+    public native Bitmap solve(Bitmap src, Bitmap overlay, int start_x, int start_y, int end_x, int end_y);
+    public native int solution_present();
 
     ImageView imageView;
+    int enable = 0;
+    int points_selected = 0;
     TextView tv_x;
     TextView tv_y;
     Button button_cap;
-    Button button_browse;
+    Button button_browse, button_solve;
     File photoFile = null;
     static final int CAPTURE_IMAGE_REQUEST = 1;
     Uri photoURI = null;
@@ -58,6 +61,10 @@ public class index_page extends AppCompatActivity {
     int bt_height = 0, bt_width = 0;
     Integer REQUEST_CAMERA = 1, SELECT_FILE = 0;
     boolean buttonOn;
+    Bitmap copyBitmap, outBitmap, myBitmap;
+    int x_start, y_start, x_end, y_end;
+    int touch_count = 0;
+    Bitmap Overlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,16 +76,18 @@ public class index_page extends AppCompatActivity {
         imageView = findViewById(R.id.imageView);
         button_cap = findViewById(R.id.btnCaptureImage);
         button_browse = findViewById(R.id.btnBrowseImage);
-        tv_x = (TextView)findViewById(R.id.txt_x);
-        tv_y = (TextView)findViewById(R.id.txt_y);
+        button_solve = findViewById(R.id.btnSolve);
 
+        Bitmap default_image = BitmapFactory.decodeResource(getResources(),R.drawable.page2);
+        Bitmap default_image_resized = padBitmap(default_image);
+        imageView.setImageBitmap(default_image_resized);
+        copyBitmap = default_image.copy(default_image.getConfig(), true);
 
         button_cap.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 CropImage.activity()
                         .setGuidelines(CropImageView.Guidelines.ON)
-                        .setAspectRatio(1,1)
                         .start(index_page.this);
             }
         });
@@ -87,16 +96,83 @@ public class index_page extends AppCompatActivity {
             public void onClick(View view) {
                 CropImage.activity()
                         .setGuidelines(CropImageView.Guidelines.ON)
-                        .setAspectRatio(1,1)
                         .start(index_page.this);
             }
         });
-    }
+        button_solve.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(enable == 1 && points_selected == 1){
+                    int return_value = 0;
+                    Bitmap solution, nosolution;
+                    nosolution = outBitmap.copy(outBitmap.getConfig(), true);
+                    solution = solve(outBitmap, Overlay, x_start, y_start, x_end, y_end);
+                    return_value = solution_present();
+                    if(return_value == 0){
+                        imageView.setImageBitmap(solution);
+                        displayMessage(getBaseContext(),"Follow my Paw Prints");
+                    }else{
+                        imageView.setImageBitmap(nosolution);
+                        displayMessage(getBaseContext(),"Sorry! No Path Found");
+                        outBitmap = nosolution;
+                        copyBitmap = nosolution;
+                        touch_count = 0;
+                        displayMessage(getBaseContext(),"Select the Start Point");
+                    }
+                }
+            }
+        });
 
-    private void SelectImage(){
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        intent.setType("image/*");
-        startActivityForResult(intent.createChooser(intent, "Select File"), SELECT_FILE);
+        imageView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(enable == 1) {
+                    int width = copyBitmap.getWidth() - 1;
+                    int height = copyBitmap.getHeight() - 1;
+                    if (touch_count == 0) {
+                        x_start = (int) event.getX();
+                        y_start = (int) event.getY();
+                        if(x_start < width && y_start < height
+                        && x_start > 0 && y_start > 0) {
+                            int color = Color.argb(255, 255, 0, 0);
+                            copyBitmap.setPixel(x_start, y_start, color);
+                            copyBitmap.setPixel(x_start + 1, y_start, color);
+                            copyBitmap.setPixel(x_start + 1, y_start - 1, color);
+                            copyBitmap.setPixel(x_start + 1, y_start + 1, color);
+                            copyBitmap.setPixel(x_start - 1, y_start, color);
+                            copyBitmap.setPixel(x_start - 1, y_start - 1, color);
+                            copyBitmap.setPixel(x_start - 1, y_start + 1, color);
+                            copyBitmap.setPixel(x_start, y_start + 1, color);
+                            copyBitmap.setPixel(x_start, y_start - 1, color);
+                            imageView.setImageBitmap(copyBitmap);
+                            touch_count = touch_count + 1;
+                            displayMessage(getBaseContext(),"Select the End Point");
+                        }
+                    } else if (touch_count == 1) {
+                        x_end = (int) event.getX();
+                        y_end = (int) event.getY();
+                        if(x_start < width && y_start < height
+                                && x_start > 0 && y_start > 0) {
+                            int color = Color.argb(255, 0, 255, 0);
+                            copyBitmap.setPixel(x_end, y_end, color);
+                            copyBitmap.setPixel(x_end + 1, y_end, color);
+                            copyBitmap.setPixel(x_end + 1, y_end - 1, color);
+                            copyBitmap.setPixel(x_end + 1, y_end + 1, color);
+                            copyBitmap.setPixel(x_end - 1, y_end, color);
+                            copyBitmap.setPixel(x_end - 1, y_end - 1, color);
+                            copyBitmap.setPixel(x_end - 1, y_end + 1, color);
+                            copyBitmap.setPixel(x_end, y_end + 1, color);
+                            copyBitmap.setPixel(x_end, y_end - 1, color);
+                            imageView.setImageBitmap(copyBitmap);
+                            touch_count = touch_count + 1;
+                            points_selected = 1;
+                        }
+                    }
+                    return false;
+                }
+                return false;
+            }
+        });
     }
 
     private void captureImage() {
@@ -108,7 +184,6 @@ public class index_page extends AppCompatActivity {
             if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
                 // Create the File where the photo should go
                 try {
-
                     photoFile = createImageFile();
                     displayMessage(getBaseContext(),photoFile.getAbsolutePath());
                     Log.i("Mayank",photoFile.getAbsolutePath());
@@ -158,21 +233,29 @@ public class index_page extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 Uri selectedImageUri = result.getUri();
                 try {
-                    Bitmap myBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
-                    myBitmap = toGrayscale(myBitmap);
+                    myBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
+                    Overlay = BitmapFactory.decodeResource(getResources(),R.drawable.dogpaw3d2);
                     bt_height = myBitmap.getHeight();
                     bt_width = myBitmap.getWidth();
                     if(bt_width < bt_height){
-                        Bitmap myBitmapOut = toGrayscale(myBitmap);
-                        myBitmap = BlackWhite(myBitmapOut);
-                        imageView.setImageBitmap(myBitmap);
+                        myBitmap = BlackWhite(myBitmap);
+                        outBitmap = padBitmap(myBitmap);
+                        copyBitmap = outBitmap;
+                        imageView.setImageBitmap(outBitmap);
+                        displayMessage(getBaseContext(),"Select the Start Point");
+                        enable = 1;
+                        points_selected = 0;
                     }else{
                         Matrix mat = new Matrix();
                         mat.postRotate(90);
                         Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
-                        Bitmap myBitmapOut = toGrayscale(bMapRotate);
-                        myBitmap = BlackWhite(myBitmapOut);
-                        imageView.setImageBitmap(myBitmap);
+                        bMapRotate = BlackWhite(bMapRotate);
+                        outBitmap = padBitmap(bMapRotate);
+                        copyBitmap = outBitmap;
+                        imageView.setImageBitmap(outBitmap);
+                        displayMessage(getBaseContext(),"Select the Start Point");
+                        enable = 1;
+                        points_selected = 0;
                     }
                     imageView.getLocationOnScreen(viewCoords);
                 } catch (IOException e) {
@@ -206,35 +289,37 @@ public class index_page extends AppCompatActivity {
         }
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event){
-        int x_flt = (int)event.getX();
-        int y_flt = (int)event.getY();
-        String vcx_str = Float.toString(viewCoords[0]);
-        String vcy_str = Float.toString(viewCoords[1]);
-        String x_str = Float.toString(x_flt);
-        String y_str = Float.toString(y_flt);
-        String w_str = Float.toString(bt_width);
-        String h_str = Float.toString(bt_height);
-        tv_x.setText(vcx_str + " ," + x_str + " ," +  w_str);
-        tv_y.setText(vcy_str + " ," + y_str + " ," +  h_str);
-        return false;
-    }
-
-    public Bitmap toGrayscale(Bitmap bmpOriginal)
+    public Bitmap padBitmap(Bitmap bitmap)
     {
-        int width, height;
-        height = bmpOriginal.getHeight();
-        width = bmpOriginal.getWidth();
+        int paddingY;
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        float device_height = metrics.heightPixels;
+        float device_width = metrics.widthPixels;
+        float origWidth = bitmap.getWidth();
+        float origHeight = bitmap.getHeight();
+        int destWidth = (int) device_width;
+        float divisor = origWidth / destWidth;
+        int destHeight = (int) (origHeight / divisor);
+        // we create an scaled bitmap so it reduces the image, not just trim it
+        Bitmap resized = Bitmap.createScaledBitmap(bitmap, destWidth, destHeight, false);
 
-        Bitmap bmpGrayscale = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(bmpGrayscale);
-        Paint paint = new Paint();
-        ColorMatrix cm = new ColorMatrix();
-        cm.setSaturation(0);
-        ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
-        paint.setColorFilter(f);
-        c.drawBitmap(bmpOriginal, 0, 0, paint);
-        return bmpGrayscale;
+        //padding
+        int newdestHeight = (int)(device_height * 0.8);
+        paddingY = newdestHeight - destHeight;
+
+        Bitmap paddedBitmap = Bitmap.createBitmap(
+                destWidth,
+                destHeight + paddingY,
+                Bitmap.Config.ARGB_8888);
+
+        Canvas canvas = new Canvas(paddedBitmap);
+        canvas.drawARGB(0xFF, 0xFF, 0x95, 0x01); // this represents white color
+        canvas.drawBitmap(
+                resized,0,
+                paddingY / 2,
+                new Paint(Paint.FILTER_BITMAP_FLAG));
+
+        return paddedBitmap;
     }
 }
