@@ -1,5 +1,7 @@
 package com.example.trial8;
+
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,6 +13,7 @@ import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -20,10 +23,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import android.graphics.Color;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -45,27 +46,24 @@ public class index_page extends AppCompatActivity {
     public native Bitmap BlackWhite(Bitmap bitmapIn);
     public native Bitmap solve(Bitmap src, Bitmap overlay, int start_x, int start_y, int end_x, int end_y);
     public native int solution_present();
+    public native Bitmap mazefordisplay(Bitmap src);
 
     ImageView imageView;
     int enable = 0;
     int points_selected = 0;
-    TextView tv_x;
-    TextView tv_y;
     Button button_cap;
     Button button_browse, button_solve;
     File photoFile = null;
     static final int CAPTURE_IMAGE_REQUEST = 1;
-    Uri photoURI = null;
     String mCurrentPhotoPath = "";
     int[] viewCoords = new int[2];
     int bt_height = 0, bt_width = 0;
-    Integer REQUEST_CAMERA = 1, SELECT_FILE = 0;
-    boolean buttonOn;
-    Bitmap copyBitmap, outBitmap, myBitmap;
+    Bitmap outBitmap, display_image, dispImageCpy;
     int x_start, y_start, x_end, y_end;
     int touch_count = 0;
     Bitmap Overlay;
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,7 +79,6 @@ public class index_page extends AppCompatActivity {
         Bitmap default_image = BitmapFactory.decodeResource(getResources(),R.drawable.page2);
         Bitmap default_image_resized = padBitmap(default_image);
         imageView.setImageBitmap(default_image_resized);
-        copyBitmap = default_image.copy(default_image.getConfig(), true);
 
         button_cap.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -103,22 +100,27 @@ public class index_page extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if(enable == 1 && points_selected == 1){
-                    int return_value = 0;
-                    Bitmap solution, nosolution;
-                    nosolution = outBitmap.copy(outBitmap.getConfig(), true);
+                    int return_value;
+                    Bitmap solution;
                     solution = solve(outBitmap, Overlay, x_start, y_start, x_end, y_end);
                     return_value = solution_present();
                     if(return_value == 0){
                         imageView.setImageBitmap(solution);
                         displayMessage(getBaseContext(),"Follow my Paw Prints");
                     }else{
-                        imageView.setImageBitmap(nosolution);
+                        imageView.setImageBitmap(dispImageCpy);
+                        display_image = dispImageCpy.copy(dispImageCpy.getConfig(), true);;
                         displayMessage(getBaseContext(),"Sorry! No Path Found");
-                        outBitmap = nosolution;
-                        copyBitmap = nosolution;
                         touch_count = 0;
-                        displayMessage(getBaseContext(),"Select the Start Point");
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                displayMessage(getBaseContext(),"Select the Start Point");
+                            }
+                        },2000);
                     }
+                    enable = 1;
+                    points_selected = 0;
                 }
             }
         });
@@ -127,43 +129,47 @@ public class index_page extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(enable == 1) {
-                    int width = copyBitmap.getWidth() - 1;
-                    int height = copyBitmap.getHeight() - 1;
+                    int width = display_image.getWidth() - 2;
+                    int height = display_image.getHeight() - 2;
                     if (touch_count == 0) {
                         x_start = (int) event.getX();
                         y_start = (int) event.getY();
                         if(x_start < width && y_start < height
                         && x_start > 0 && y_start > 0) {
-                            int color = Color.argb(255, 255, 0, 0);
-                            copyBitmap.setPixel(x_start, y_start, color);
-                            copyBitmap.setPixel(x_start + 1, y_start, color);
-                            copyBitmap.setPixel(x_start + 1, y_start - 1, color);
-                            copyBitmap.setPixel(x_start + 1, y_start + 1, color);
-                            copyBitmap.setPixel(x_start - 1, y_start, color);
-                            copyBitmap.setPixel(x_start - 1, y_start - 1, color);
-                            copyBitmap.setPixel(x_start - 1, y_start + 1, color);
-                            copyBitmap.setPixel(x_start, y_start + 1, color);
-                            copyBitmap.setPixel(x_start, y_start - 1, color);
-                            imageView.setImageBitmap(copyBitmap);
+                            int w_olay = Overlay.getWidth();
+                            int h_olay = Overlay.getHeight();
+                            for (int x_olay = 0; x_olay < w_olay; x_olay++) {
+                                for (int y_olay = 0; y_olay < h_olay; y_olay++) {
+                                    int coloring = Overlay.getPixel(x_olay, y_olay);
+                                    if (( coloring > -10000000
+                                            && (x_start + x_olay) < width
+                                            && (y_start + y_olay) < height)) {
+                                        display_image.setPixel((x_start + x_olay), (y_start + y_olay), coloring);
+                                    }
+                                }
+                            }
+                            imageView.setImageBitmap(display_image);
                             touch_count = touch_count + 1;
                             displayMessage(getBaseContext(),"Select the End Point");
                         }
                     } else if (touch_count == 1) {
                         x_end = (int) event.getX();
                         y_end = (int) event.getY();
-                        if(x_start < width && y_start < height
-                                && x_start > 0 && y_start > 0) {
-                            int color = Color.argb(255, 0, 255, 0);
-                            copyBitmap.setPixel(x_end, y_end, color);
-                            copyBitmap.setPixel(x_end + 1, y_end, color);
-                            copyBitmap.setPixel(x_end + 1, y_end - 1, color);
-                            copyBitmap.setPixel(x_end + 1, y_end + 1, color);
-                            copyBitmap.setPixel(x_end - 1, y_end, color);
-                            copyBitmap.setPixel(x_end - 1, y_end - 1, color);
-                            copyBitmap.setPixel(x_end - 1, y_end + 1, color);
-                            copyBitmap.setPixel(x_end, y_end + 1, color);
-                            copyBitmap.setPixel(x_end, y_end - 1, color);
-                            imageView.setImageBitmap(copyBitmap);
+                        if(x_end < width && y_end < height
+                                && x_end > 0 && y_end > 0) {
+                            int w_olay = Overlay.getWidth();
+                            int h_olay = Overlay.getHeight();
+                            for (int x_olay = 0; x_olay < w_olay; x_olay++) {
+                                for (int y_olay = 0; y_olay < h_olay; y_olay++) {
+                                    int coloring = Overlay.getPixel(x_olay, y_olay);
+                                    if (coloring > -10000000
+                                            && (x_end + x_olay) < width
+                                            && (y_end + y_olay) < height) {
+                                        display_image.setPixel((x_end + x_olay), (y_end + y_olay), coloring);
+                                    }
+                                }
+                            }
+                            imageView.setImageBitmap(display_image);
                             touch_count = touch_count + 1;
                             points_selected = 1;
                         }
@@ -198,7 +204,7 @@ public class index_page extends AppCompatActivity {
                     }
                 } catch (Exception ex) {
                     // Error occurred while creating the File
-                    displayMessage(getBaseContext(),ex.getMessage().toString());
+                    displayMessage(getBaseContext(), ex.getMessage());
                 }
 
 
@@ -211,7 +217,7 @@ public class index_page extends AppCompatActivity {
 
     private File createImageFile() throws IOException {
         // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        @SuppressLint("SimpleDateFormat") String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File image = File.createTempFile(
@@ -233,36 +239,33 @@ public class index_page extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 Uri selectedImageUri = result.getUri();
                 try {
-                    myBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
+                    Bitmap selImage, dummy;
+                    selImage = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
                     Overlay = BitmapFactory.decodeResource(getResources(),R.drawable.dogpaw3d2);
-                    bt_height = myBitmap.getHeight();
-                    bt_width = myBitmap.getWidth();
+                    bt_height = selImage.getHeight();
+                    bt_width = selImage.getWidth();
                     if(bt_width < bt_height){
-                        myBitmap = BlackWhite(myBitmap);
-                        outBitmap = padBitmap(myBitmap);
-                        copyBitmap = outBitmap;
-                        imageView.setImageBitmap(outBitmap);
-                        displayMessage(getBaseContext(),"Select the Start Point");
-                        enable = 1;
-                        points_selected = 0;
+                        selImage = BlackWhite(selImage);
+                        dummy = selImage.copy(selImage.getConfig(), true);
+                        outBitmap = padBitmap(selImage);
                     }else{
                         Matrix mat = new Matrix();
                         mat.postRotate(90);
-                        Bitmap bMapRotate = Bitmap.createBitmap(myBitmap, 0, 0,bt_width,bt_height, mat, true);
-                        bMapRotate = BlackWhite(bMapRotate);
-                        outBitmap = padBitmap(bMapRotate);
-                        copyBitmap = outBitmap;
-                        imageView.setImageBitmap(outBitmap);
-                        displayMessage(getBaseContext(),"Select the Start Point");
-                        enable = 1;
-                        points_selected = 0;
+                        Bitmap rotImage = Bitmap.createBitmap(selImage, 0, 0,bt_width,bt_height, mat, true);
+                        rotImage = BlackWhite(rotImage);
+                        dummy = rotImage.copy(rotImage.getConfig(), true);
+                        outBitmap = padBitmap(rotImage);
                     }
-                    imageView.getLocationOnScreen(viewCoords);
+                    display_image = mazefordisplay(dummy);
+                    display_image = padBitmap(display_image);
+                    dispImageCpy = display_image.copy(display_image.getConfig(), true);
+                    imageView.setImageBitmap(display_image);
+                    displayMessage(getBaseContext(),"Select the Start Point");
+                    enable = 1;
+                    points_selected = 0;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
-                Exception error = result.getError();
             }
         }
         else

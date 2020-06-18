@@ -6,7 +6,7 @@
 
 void bitmapToMat(JNIEnv *env, jobject bitmap, Mat& dst, jboolean needUnPremultiplyAlpha){
     AndroidBitmapInfo  info;
-    void*              pixels = 0;
+    void*              pixels = nullptr;
 
     try {
         CV_Assert( AndroidBitmap_getInfo(env, bitmap, &info) >= 0 );
@@ -40,9 +40,9 @@ void bitmapToMat(JNIEnv *env, jobject bitmap, Mat& dst, jboolean needUnPremultip
     }
 }
 
-void matToBitmap(JNIEnv * env, Mat src, jobject bitmap, jboolean needPremultiplyAlpha) {
+void matToBitmap(JNIEnv * env, const Mat& src, jobject bitmap, jboolean needPremultiplyAlpha) {
     AndroidBitmapInfo info;
-    void *pixels = 0;
+    void *pixels = nullptr;
     try {
         CV_Assert(AndroidBitmap_getInfo(env, bitmap, &info) >= 0);
         CV_Assert(info.format == ANDROID_BITMAP_FORMAT_RGBA_8888 ||
@@ -102,16 +102,22 @@ JNIEXPORT jobject JNICALL
 Java_com_example_trial8_index_1page_solve(JNIEnv *env, jobject thiz, jobject src, jobject overlay,
                                           jint start_x, jint start_y, jint end_x, jint end_y) {
     Mat olay, input, output;
-    jobject output_image = src;
     bitmapToMat(env, overlay, olay, false);
     bitmapToMat(env, src, input, false);
     output = solve(input, olay, start_x, start_y, end_x, end_y);
-    matToBitmap(env, output, output_image, false);
-    return output_image;
+    matToBitmap(env, output, src, false);
+    return src;
 }extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_trial8_index_1page_solution_1present(JNIEnv *env, jobject thiz) {
     int return_value;
     return_value = solution_present();
     return return_value;
+}extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_example_trial8_index_1page_mazefordisplay(JNIEnv *env, jobject thiz, jobject src) {
+    Mat out;
+    out = mazefordisplay();
+    matToBitmap(env, out, src, false);
+    return src;
 }

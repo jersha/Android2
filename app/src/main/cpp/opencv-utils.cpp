@@ -1,11 +1,12 @@
 #include "opencv-utils.h"
 #include <opencv2/imgproc.hpp>
 #include <vector>
-#include <math.h>
+#include <cmath>
 #include <queue>
 
 Mat output;
 int solution = 0;
+Mat TempMat;
 
 float distance(int x1, int y1, int x2, int y2)
 {
@@ -14,11 +15,11 @@ float distance(int x1, int y1, int x2, int y2)
                 pow(y2 - y1, 2) * 1.0);
 }
 
-int getPathThroughMaze(unsigned char *outputImage, unsigned char *binaryImage, unsigned char *overlayImage, int w_olay, int h_olay,int w, int h, int startX, int startY, int endX, int endY, bool drawCostMap)
+int getPathThroughMaze(unsigned char *outputImage, const unsigned char *binaryImage, const unsigned char *overlayImage, int w_olay, int h_olay,int w, int h, int startX, int startY, int endX, int endY, bool drawCostMap)
 {
     int return_value = 0;
-    unsigned char *visited = (unsigned char*)calloc(w * h, 1);
-    unsigned int *pathValue = (unsigned int*)calloc(w * h, sizeof(unsigned int));
+    auto *visited = (unsigned char*)calloc(w * h, 1);
+    auto *pathValue = (unsigned int*)calloc(w * h, sizeof(unsigned int));
 
     std::queue<std::pair<int, int>> currentPoints;
     currentPoints.push(std::pair<int, int>(startX, startY));
@@ -99,6 +100,10 @@ int getPathThroughMaze(unsigned char *outputImage, unsigned char *binaryImage, u
                 outputImage[3 * (x + y * w) + 0] = 65;
                 outputImage[3 * (x + y * w) + 1] = 65;
                 outputImage[3 * (x + y * w) + 2] = 65;
+            }else{
+                outputImage[3 * (x + y * w) + 0] = 255;
+                outputImage[3 * (x + y * w) + 1] = 149;
+                outputImage[3 * (x + y * w) + 2] = 1;
             }
         }
     }
@@ -116,14 +121,14 @@ int getPathThroughMaze(unsigned char *outputImage, unsigned char *binaryImage, u
         if (iteration == 0) {
             for (int x_olay = 0; x_olay < w_olay; x_olay++) {
                 for (int y_olay = 0; y_olay < h_olay; y_olay++) {
-                    if (overlayImage[3 * (x_olay + y_olay * w_olay) + 0]
-                        + overlayImage[3 * (x_olay + y_olay * w_olay) + 1]
-                        + overlayImage[3 * (x_olay + y_olay * w_olay) + 2] > 300
-                        && (currX + x_olay) < w
+                    if ((overlayImage[3 * ((x_olay + y_olay) * w_olay) + 0]
+                         + overlayImage[3 * ((x_olay + y_olay) * w_olay) + 1]
+                         + overlayImage[3 * ((x_olay + y_olay) * w_olay) + 2]) < 300
+                         && (currX + x_olay) < w
                         && (currY + y_olay) < h) {
-                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 0] = overlayImage[3 * (x_olay + y_olay * w_olay) + 0];
-                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 1] = overlayImage[3 * (x_olay + y_olay * w_olay) + 1];
-                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 2] = overlayImage[3 * (x_olay + y_olay * w_olay) + 2];
+                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 0] = 255;
+                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 1] = 149;
+                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 2] = 1;
                     }
                 }
             }
@@ -171,7 +176,7 @@ Mat solve(Mat src, const Mat& overlay, int start_x, int start_y, int end_x, int 
     unsigned char *outputImage, *binaryImage, *overlayImage;
     binaryImage = new unsigned char[w * h]();
     binaryImage = src.data;
-    overlayImage = new unsigned char[w_olay * h_olay]();
+    overlayImage = new unsigned char[w_olay * h_olay * 3]();
     overlayImage = overlay.data;
     outputImage = new unsigned char[w * h * 3]();
     solution = getPathThroughMaze(outputImage, binaryImage, overlayImage, w_olay, h_olay, w, h, start_x, start_y, end_x, end_y, saveCostMap);
@@ -180,7 +185,7 @@ Mat solve(Mat src, const Mat& overlay, int start_x, int start_y, int end_x, int 
     return TempMat;
 }
 
-Mat BlackWhite(Mat src){
+Mat BlackWhite(Mat src) {
     Mat src_gray, final_mat;
     Mat dst, detected_edges;
     int lowThreshold = 50;
@@ -202,21 +207,17 @@ Mat BlackWhite(Mat src){
     dst.create(src.size(), src.type());
     cvtColor(src, src_gray, COLOR_BGR2GRAY);
     blur(src_gray, src_gray, Size(5, 5));
-    final_mat = src_gray.clone();;
+    final_mat = src_gray.clone();
     int rows = src_gray.rows;
     int cols = src_gray.cols;
     if (rows >= 200 && cols >= 200) {
         int threshold_val = 3;
-        if (rows >= cols) {
-            threshold_val = rows / 25;
-        }
-        else {
-            threshold_val = cols / 25;
-        }
+        threshold_val = (rows >= cols ? rows : cols) / 25;
         if (threshold_val % 2 == 0) {
             threshold_val -= 1;
         }
-        adaptiveThreshold(src_gray, final_mat, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, threshold_val, 3);
+        adaptiveThreshold(src_gray, final_mat, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY,
+                          threshold_val, 3);
     }
     //threshold(final_mat, final_mat, 50, 255, THRESH_BINARY);
     //blur(final_mat, final_mat, Size(5, 5));
@@ -224,20 +225,17 @@ Mat BlackWhite(Mat src){
     size_x = src_gray.rows;
     size_y = src_gray.cols;
     blur(src_gray, detected_edges, Size(3, 3));
-    Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
-    for (int i = 0; i < detected_edges.rows; i++)
-    {
-        uchar* pt = detected_edges.data + detected_edges.step[0] * i;
-        for (int j = 0; j < detected_edges.cols; j++)
-        {
-            uchar* ptr = pt + detected_edges.step[1] * j;
+    Canny(detected_edges, detected_edges, lowThreshold, lowThreshold * ratio, kernel_size);
+    for (int i = 0; i < detected_edges.rows; i++) {
+        uchar *pt = detected_edges.data + detected_edges.step[0] * i;
+        for (int j = 0; j < detected_edges.cols; j++) {
+            uchar *ptr = pt + detected_edges.step[1] * j;
             uchar blue = ptr[0];
             uchar green = ptr[1];
             uchar red = ptr[2];
 
             float pixelVal = blue + green + red;
-            if (pixelVal > 250)
-            {
+            if (pixelVal > 250) {
                 x.push_back(i);
                 y.push_back(j);
                 TL.push_back(distance(0, 0, i, j));
@@ -276,9 +274,34 @@ Mat BlackWhite(Mat src){
     lambda = getPerspectiveTransform(corner_points, outputQuad, 0);
     // Apply the Perspective Transform just found to the src image
     warpPerspective(input, output, lambda, output.size());
+
+    int w = output.cols;
+    int h = output.rows;
+    unsigned char *outputImage, *binaryImage;
+    binaryImage = new unsigned char[w * h]();
+    binaryImage = output.data;
+    outputImage = new unsigned char[w * h * 3]();
+    for (int x = 0; x < w; x++) {
+        for (int y = 0; y < h; y++) {
+            if (binaryImage[x + y * w] ==0) {
+                outputImage[3 * (x + y * w) + 0] = 65;
+                outputImage[3 * (x + y * w) + 1] = 65;
+                outputImage[3 * (x + y * w) + 2] = 65;
+            }else{
+                outputImage[3 * (x + y * w) + 0] = 255;
+                outputImage[3 * (x + y * w) + 1] = 255;
+                outputImage[3 * (x + y * w) + 2] = 255;
+            }
+        }
+    }
+    TempMat = Mat(h, w, CV_8UC3, outputImage);
     return output;
 }
 
 int solution_present(){
     return solution;
+}
+
+Mat mazefordisplay(){
+    return TempMat;
 }
