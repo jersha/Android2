@@ -5,6 +5,7 @@
 using namespace cv;
 
 Mat BlackWhite(Mat src);
-Mat solve(Mat src, const Mat& olay, int start_x, int start_y, int end_x, int end_y);
+int solve(Mat src, int start_x, int start_y, int end_x, int end_y);
 int solution_present();
 Mat mazefordisplay();
+int getSolution(int index);

@@ -7,6 +7,7 @@
 Mat output;
 int solution = 0;
 Mat TempMat;
+std::vector<int> finalPath;
 
 float distance(int x1, int y1, int x2, int y2)
 {
@@ -15,7 +16,7 @@ float distance(int x1, int y1, int x2, int y2)
                 pow(y2 - y1, 2) * 1.0);
 }
 
-int getPathThroughMaze(unsigned char *outputImage, const unsigned char *binaryImage, const unsigned char *overlayImage, int w_olay, int h_olay,int w, int h, int startX, int startY, int endX, int endY, bool drawCostMap)
+int getPathThroughMaze(const unsigned char *binaryImage,int w, int h, int startX, int startY, int endX, int endY)
 {
     int return_value = 0;
     auto *visited = (unsigned char*)calloc(w * h, 1);
@@ -64,48 +65,13 @@ int getPathThroughMaze(unsigned char *outputImage, const unsigned char *binaryIm
         }
     }
 
-    if (drawCostMap)
-    {
-        double multiplier = 1.0 / maxPathValue;
-        for (int x = 0; x < w; x++)
-        {
-            for (int y = 0; y < h; y++)
-            {
-                for (int i = 0; i < 3; i++)
-                    outputImage[3 * (x + y * w) + i] = static_cast<unsigned char>(255 * multiplier * pathValue[x + y * w]);
-            }
-        }
 
-        return return_value;
-    }
 
     if (!endReached)
     {
         return_value = -1;
         //printf("Solution to the maze not found\n");
         return return_value;
-    }
-
-    //Let's color the maze walls in a black, with gray background so that the path is more visible.
-    for (int x = 0; x < w; x++)
-    {
-        for (int y = 0; y < h; y++)
-        {
-            if (binaryImage[x + y * w] == 255) {
-                outputImage[3 * (x + y * w) + 0] = 255;
-                outputImage[3 * (x + y * w) + 1] = 255;
-                outputImage[3 * (x + y * w) + 2] = 255;
-            }
-            else if (binaryImage[x + y * w] == 0) {
-                outputImage[3 * (x + y * w) + 0] = 65;
-                outputImage[3 * (x + y * w) + 1] = 65;
-                outputImage[3 * (x + y * w) + 2] = 65;
-            }else{
-                outputImage[3 * (x + y * w) + 0] = 255;
-                outputImage[3 * (x + y * w) + 1] = 149;
-                outputImage[3 * (x + y * w) + 2] = 1;
-            }
-        }
     }
 
     //printf("Drawing path\n");
@@ -115,23 +81,12 @@ int getPathThroughMaze(unsigned char *outputImage, const unsigned char *binaryIm
     int iteration = 0;
     for (;currPathValue > 1;)
     {
-        if (iteration == 25) {
+        if (iteration == 40) {
             iteration = 0;
         }
         if (iteration == 0) {
-            for (int x_olay = 0; x_olay < w_olay; x_olay++) {
-                for (int y_olay = 0; y_olay < h_olay; y_olay++) {
-                    if ((overlayImage[3 * ((x_olay + y_olay) * w_olay) + 0]
-                         + overlayImage[3 * ((x_olay + y_olay) * w_olay) + 1]
-                         + overlayImage[3 * ((x_olay + y_olay) * w_olay) + 2]) < 300
-                         && (currX + x_olay) < w
-                        && (currY + y_olay) < h) {
-                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 0] = 255;
-                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 1] = 149;
-                        outputImage[3 * ((currX + x_olay) + (currY + y_olay) * w) + 2] = 1;
-                    }
-                }
-            }
+            finalPath.push_back(currX);
+            finalPath.push_back(currY);
         }
         int bestMoveX = 0;
         int bestMoveY = 0;
@@ -164,28 +119,26 @@ int getPathThroughMaze(unsigned char *outputImage, const unsigned char *binaryIm
     return 0;
 }
 
-Mat solve(Mat src, const Mat& overlay, int start_x, int start_y, int end_x, int end_y) {
+int solve(Mat src, int start_x, int start_y, int end_x, int end_y) {
+    int size;
     solution = 0;
     cvtColor(src, src, COLOR_BGR2GRAY);
     int w = src.cols;
     int h = src.rows;
-
-    int w_olay = overlay.cols;
-    int h_olay = overlay.rows;
-    bool saveCostMap = false;
-    unsigned char *outputImage, *binaryImage, *overlayImage;
+    unsigned char *binaryImage;
     binaryImage = new unsigned char[w * h]();
     binaryImage = src.data;
-    overlayImage = new unsigned char[w_olay * h_olay * 3]();
-    overlayImage = overlay.data;
-    outputImage = new unsigned char[w * h * 3]();
-    solution = getPathThroughMaze(outputImage, binaryImage, overlayImage, w_olay, h_olay, w, h, start_x, start_y, end_x, end_y, saveCostMap);
-    Mat TempMat;
-    TempMat = Mat(h, w, CV_8UC3, outputImage);
-    return TempMat;
+    finalPath.clear();
+    solution = getPathThroughMaze(binaryImage, w, h, start_x, start_y, end_x, end_y);
+    size = finalPath.size();
+    return size;
 }
 
 Mat BlackWhite(Mat src) {
+    output.release();
+    solution = 0;
+    TempMat.release();
+    finalPath.clear();
     Mat src_gray, final_mat;
     Mat dst, detected_edges;
     int lowThreshold = 50;
@@ -200,10 +153,6 @@ Mat BlackWhite(Mat src) {
     std::vector<int> BL;
     std::vector<int> BR;
     Point2f corner_points[4];
-    /*if (src.empty())
-    {
-        return -1;
-    }*/
     dst.create(src.size(), src.type());
     cvtColor(src, src_gray, COLOR_BGR2GRAY);
     blur(src_gray, src_gray, Size(5, 5));
@@ -219,9 +168,6 @@ Mat BlackWhite(Mat src) {
         adaptiveThreshold(src_gray, final_mat, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY,
                           threshold_val, 3);
     }
-    //threshold(final_mat, final_mat, 50, 255, THRESH_BINARY);
-    //blur(final_mat, final_mat, Size(5, 5));
-    //threshold(src_gray, final_mat, 0, 255, ADAPTIVE_THRESH_GAUSSIAN_C + THRESH_OTSU);
     size_x = src_gray.rows;
     size_y = src_gray.cols;
     blur(src_gray, detected_edges, Size(3, 3));
@@ -305,3 +251,8 @@ int solution_present(){
 Mat mazefordisplay(){
     return TempMat;
 }
+
+int getSolution(int index){
+    return(finalPath[index]);
+}
+

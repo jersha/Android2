@@ -97,17 +97,8 @@ Java_com_example_trial8_index_1page_BlackWhite(JNIEnv *env, jobject thiz, jobjec
     matToBitmap(env, dest, bitmap_in, false);
     return bitmap_in;
 }
+
 extern "C"
-JNIEXPORT jobject JNICALL
-Java_com_example_trial8_index_1page_solve(JNIEnv *env, jobject thiz, jobject src, jobject overlay,
-                                          jint start_x, jint start_y, jint end_x, jint end_y) {
-    Mat olay, input, output;
-    bitmapToMat(env, overlay, olay, false);
-    bitmapToMat(env, src, input, false);
-    output = solve(input, olay, start_x, start_y, end_x, end_y);
-    matToBitmap(env, output, src, false);
-    return src;
-}extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_trial8_index_1page_solution_1present(JNIEnv *env, jobject thiz) {
     int return_value;
@@ -120,4 +111,20 @@ Java_com_example_trial8_index_1page_mazefordisplay(JNIEnv *env, jobject thiz, jo
     out = mazefordisplay();
     matToBitmap(env, out, src, false);
     return src;
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_example_trial8_index_1page_solve(JNIEnv *env, jobject thiz, jobject src, jint start_x,
+                                          jint start_y, jint end_x, jint end_y) {
+    Mat input;
+    int size;
+    bitmapToMat(env, src, input, false);
+    size = solve(input, start_x, start_y, end_x, end_y);
+    return size;
+}extern "C"
+JNIEXPORT jint JNICALL
+Java_com_example_trial8_index_1page_getSolution(JNIEnv *env, jobject thiz, jint index) {
+    int solution;
+    solution = getSolution(index);
+    return solution;
 }

@@ -44,8 +44,9 @@ public class index_page extends AppCompatActivity {
     }
 
     public native Bitmap BlackWhite(Bitmap bitmapIn);
-    public native Bitmap solve(Bitmap src, Bitmap overlay, int start_x, int start_y, int end_x, int end_y);
+    public native int solve(Bitmap src, int start_x, int start_y, int end_x, int end_y);
     public native int solution_present();
+    public native int getSolution(int index);
     public native Bitmap mazefordisplay(Bitmap src);
 
     ImageView imageView;
@@ -56,7 +57,6 @@ public class index_page extends AppCompatActivity {
     File photoFile = null;
     static final int CAPTURE_IMAGE_REQUEST = 1;
     String mCurrentPhotoPath = "";
-    int[] viewCoords = new int[2];
     int bt_height = 0, bt_width = 0;
     Bitmap outBitmap, display_image, dispImageCpy;
     int x_start, y_start, x_end, y_end;
@@ -100,12 +100,29 @@ public class index_page extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if(enable == 1 && points_selected == 1){
-                    int return_value;
-                    Bitmap solution;
-                    solution = solve(outBitmap, Overlay, x_start, y_start, x_end, y_end);
+                    int return_value, size, vertexX, vertexY;
+                    size = solve(outBitmap, x_start, y_start, x_end, y_end) - 2;
                     return_value = solution_present();
                     if(return_value == 0){
-                        imageView.setImageBitmap(solution);
+                        int width = display_image.getWidth();
+                        int height = display_image.getHeight();
+                        int w_olay = Overlay.getWidth();
+                        int h_olay = Overlay.getHeight();
+                        for(int count = 2; count < size; count = count + 2){
+                            vertexX = getSolution(count);
+                            vertexY = getSolution(count + 1);
+                            for (int x_olay = 0; x_olay < w_olay; x_olay++) {
+                                for (int y_olay = 0; y_olay < h_olay; y_olay++) {
+                                    int coloring = Overlay.getPixel(x_olay, y_olay);
+                                    if (( coloring > -10000000
+                                            && (vertexX + x_olay) < width
+                                            && (vertexY + y_olay) < height)) {
+                                        display_image.setPixel((vertexX + x_olay), (vertexY + y_olay), coloring);
+                                    }
+                                }
+                            }
+                            imageView.setImageBitmap(display_image);
+                        }
                         displayMessage(getBaseContext(),"Follow my Paw Prints");
                     }else{
                         imageView.setImageBitmap(dispImageCpy);
@@ -129,13 +146,13 @@ public class index_page extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(enable == 1) {
-                    int width = display_image.getWidth() - 2;
-                    int height = display_image.getHeight() - 2;
+                    int width = display_image.getWidth();
+                    int height = display_image.getHeight();
                     if (touch_count == 0) {
                         x_start = (int) event.getX();
                         y_start = (int) event.getY();
                         if(x_start < width && y_start < height
-                        && x_start > 0 && y_start > 0) {
+                                && x_start > 0 && y_start > 0) {
                             int w_olay = Overlay.getWidth();
                             int h_olay = Overlay.getHeight();
                             for (int x_olay = 0; x_olay < w_olay; x_olay++) {
@@ -172,6 +189,14 @@ public class index_page extends AppCompatActivity {
                             imageView.setImageBitmap(display_image);
                             touch_count = touch_count + 1;
                             points_selected = 1;
+                            int pixel = outBitmap.getPixel(x_start, y_start);
+                            if(pixel != -1){
+                                findNearest(outBitmap, 0);
+                            }
+                            pixel = outBitmap.getPixel(x_end, y_end);
+                            if(pixel != -1){
+                                findNearest(outBitmap, 1);
+                            }
                         }
                     }
                     return false;
@@ -233,13 +258,13 @@ public class index_page extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
             CropImage.ActivityResult result = CropImage.getActivityResult(data);
             if (resultCode == RESULT_OK) {
                 Uri selectedImageUri = result.getUri();
                 try {
                     Bitmap selImage, dummy;
+                    touch_count = 0;
                     selImage = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
                     Overlay = BitmapFactory.decodeResource(getResources(),R.drawable.dogpaw3d2);
                     bt_height = selImage.getHeight();
@@ -324,5 +349,70 @@ public class index_page extends AppCompatActivity {
                 new Paint(Paint.FILTER_BITMAP_FLAG));
 
         return paddedBitmap;
+    }
+
+    void findNearest(Bitmap src, int start_end){
+        int return_result = -1;
+        int width = src.getWidth();
+        int height = src.getHeight();
+        int count1 = 0, count2 = 0, count3 = 0, count4 = 0;
+        int x, y;
+        int dir1_x, dir2_x, dir3_y, dir4_y;
+        if(start_end == 0){
+            x = x_start;
+            y = y_start;
+        }else{
+            x = x_end;
+            y = y_end;
+        }
+        for(dir1_x = x; dir1_x < width; dir1_x++){
+            count1++;
+            if(src.getPixel(dir1_x, y) == -1){
+                break;
+            }
+        }
+        for(dir2_x = x; dir2_x > 0; dir2_x--){
+            count2++;
+            if(src.getPixel(dir2_x, y) == -1){
+                break;
+            }
+        }
+        for(dir3_y = y; dir3_y > 0; dir3_y--){
+            count3++;
+            if(src.getPixel(x, dir3_y) == -1){
+                break;
+            }
+        }
+        for(dir4_y = y; dir4_y < height; dir4_y++){
+            count4++;
+            if(src.getPixel(x, dir4_y) == -1){
+                break;
+            }
+        }
+        if((count1 <= count2) && (count1 <= count3) && (count1 <= count4)){
+            if(start_end == 0){
+                x_start = dir1_x;
+            }else{
+                x_end = dir1_x;
+            }
+        }else if((count2 <= count1) && (count2 <= count3) && (count2 <= count4)){
+            if(start_end == 0){
+                x_start = dir2_x;
+            }else{
+                x_end = dir2_x;
+            }
+        }else if((count3 <= count1) && (count3 <= count2) && (count3 <= count4)){
+            if(start_end == 0){
+                y_start = dir3_y;
+            }else{
+                y_end = dir3_y;
+            }
+        }else if((count4 <= count1) && (count4 <= count2) && (count4 <= count3)){
+            if(start_end == 0){
+                y_start = dir4_y;
+            }else{
+                y_end = dir4_y;
+            }
+        }
     }
 }
